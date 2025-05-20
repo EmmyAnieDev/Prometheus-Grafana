@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-config
+  namespace: test-application # Specifies the namespace this ConfigMap belongs to
+data:
+  mongo-url: mongo-service # Service for mongo db application

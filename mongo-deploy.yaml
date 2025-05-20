@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  namespace: test-application # Specifies the namespace this deployment belongs to
+  labels:
+    app: mongo
+spec:
+  replicas: 1 # Specifies a single replica. For scaling stateful applications like databases, use StatefulSet instead of Deployment.
+  selector:
+    matchLabels: # This selector is used to identify a group of resources (like pods) that share the same labels.
+      app: mongo
+  template:
+    metadata:
+      labels: # Each pod replica has a unique name, but labels allow us to identify all the replicas of the same application by using a specific shared label.
+        app: mongo
+    spec:
+      containers: # create pods with "mongo:5.0" image
+        - name: mongodb
+          image: mongo:5.0
+          ports:
+            - containerPort: 27017
+          env: # Pass Environment variable to the application running inside the container
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-user
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-password
+
+---
+apiVersion: v1
+kind: Service # Internal service by default.
+metadata:
+  name: mongo-service # End point to access mongo as defined in the mongo-config.yaml file
+  namespace: test-application # Specifies the namespace this service belongs to
+spec:
+  selector:
+    app: mongo # Should match the "label" of the pods that belongs to this service
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017 # Always be the same with the containerPort under the deployment section.

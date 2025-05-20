@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-exporter
+  namespace: test-application
+  labels:
+    app: mongodb-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-exporter
+  template:
+    metadata:
+      labels:
+        app: mongodb-exporter
+    spec:
+      containers:
+        - name: mongodb-exporter
+          image: bitnami/mongodb-exporter:0.30.0
+          ports:
+            - containerPort: 9216
+          env:
+            - name: MONGODB_URI
+              value: "mongodb://$(MONGO_USER):$(MONGO_PASSWORD)@mongo-service:27017/admin"
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-user
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-exporter
+  namespace: test-application
+  labels:
+    app: mongodb-exporter
+spec:
+  selector:
+    app: mongodb-exporter
+  ports:
+    - port: 9216
+      targetPort: 9216

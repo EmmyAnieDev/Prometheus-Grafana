@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  namespace: test-application # Specifies the namespace this deployment belongs to
+  labels:
+    app: webapp
+spec:
+  replicas: 1 # Specifies three replicas. For scaling stateful applications like databases, use StatefulSet instead of Deployment.
+  selector:
+    matchLabels: # This selector is used to identify a group of resources (like pods) that share the same labels.
+      app: webapp
+  template:
+    metadata:
+      labels: # Each pod replica has a unique name, but labels allow us to identify all the replicas of the same application by using a specific shared label.
+        app: webapp
+    spec:
+      containers: # create pods with "nanajanashia/k8s-demo-app:1.0" image
+        - name: webapp
+          image: nanajanashia/k8s-demo-app:v1.0
+          ports:
+            - containerPort: 3000 # port our App listens to
+          env: # Pass Environment variable to the application running inside the container
+            - name: USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-user
+            - name: USER_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-password
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mongo-config
+                  key: mongo-url
+
+---
+apiVersion: v1
+kind: Service # Internal service by default. Use NodePort to make it external.
+metadata:
+  name: webapp-service # End point to access web-app as defined in the web-app-config.yaml file
+  namespace: test-application # Specifies the namespace this service belongs to
+spec:
+  type: NodePort
+  selector:
+    app: webapp # Should match the "label" of the pods that belongs to this service
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000 # Always be the same with the containerPort under the deployment section.
+      nodePort: 30100 # This exposes the service making it accessible from outside the cluster. Mainly used for development as Ingress or LoadBalancers will be used for production.
